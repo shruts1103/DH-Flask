@@ -10,24 +10,24 @@ g = 5
 def pad(message):
     padding_size = AES.block_size - len(message) % AES.block_size
     padding = chr(padding_size) * padding_size
-    return message + padding
+    return message + padding.encode()
 
 def unpad(message):
-    padding_size = ord(message[-1])
+    padding_size = message[-1]
     return message[:-padding_size]
 
 def encrypt(message, shared_secret):
     message = pad(message)
-    cipher = AES.new(shared_secret, AES.MODE_ECB)
+    cipher = AES.new(shared_secret.encode(), AES.MODE_ECB)
     return cipher.encrypt(message)
 
 def decrypt(encrypted, shared_secret):
-    cipher = AES.new(shared_secret, AES.MODE_ECB)
+    cipher = AES.new(shared_secret.encode(), AES.MODE_ECB)
     message = cipher.decrypt(encrypted)
     return unpad(message)
 
 # Define the Flask app
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Define the home page
 @app.route('/', methods=['GET', 'POST'])
@@ -38,12 +38,12 @@ def home():
         b = randint(1, 100)
 
         # Calculate the public keys for Alice and Bob
-        A = (g ** a) % p
-        B = (g ** b) % p
+        A = pow(g, a, p)
+        B = pow(g, b, p)
 
         # Exchange public keys
-        shared_secret_A = (B ** a) % p
-        shared_secret_B = (A ** b) % p
+        shared_secret_A = pow(B, a, p)
+        shared_secret_B = pow(A, b, p)
 
         # Encrypt the message
         message = request.form['message']
@@ -53,10 +53,10 @@ def home():
         return render_template('result.html', 
                                key=f"Shared key: {shared_secret_A}", 
                                encrypted=f"Encrypted message: {encrypted.hex()}", 
-                               decrypted=f"Decrypted message: {decrypt(encrypted, str(shared_secret_B))}")
+                               decrypted=f"Decrypted message: {decrypt(encrypted, str(shared_secret_B).encode()).decode()}")
     else:
         return render_template('home.html')
 
 # Start the Flask app
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)
